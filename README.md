@@ -9,9 +9,8 @@
 | | |
 |---|---|
 | **🎬 Demo Video** |<video src="https://github.com/user-attachments/assets/1388e168-f03c-4a81-b46d-1e98b45353d3" width="600" controls></video>|
-| **🌐 Live Deployment** | [https://bi-copilot.vercel.app](https://bi-copilot.vercel.app) — Frontend (Vercel) |
-| **⚙️ API Endpoint** | [https://bi-copilot-api.railway.app](https://bi-copilot-api.railway.app) — Backend (Railway) |
-| **📖 API Docs** | [https://bi-copilot-api.railway.app/docs](https://bi-copilot-api.railway.app/docs) — Interactive Swagger UI |
+| **🌐 Live Deployment** | [https://business-intelligence-copilot.vercel.app/](https://business-intelligence-copilot.vercel.app/) — Frontend (Vercel) |
+| **⚙️ API Endpoint** | [https://huggingface.co/spaces/Doaamostafa/bI-platform](https://huggingface.co/spaces/Doaamostafa/bI-platform) — Backend (Railway) |
 | **📊 LangSmith Traces** | [View public trace dashboard](https://smith.langchain.com/public/1c26e903-95bb-47fb-bb61-064d44f32491/r) |
 
 
