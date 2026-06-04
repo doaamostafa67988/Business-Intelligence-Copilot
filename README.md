@@ -20,9 +20,8 @@
 
 ## 🏗️ Architecture
 
-![Architecture Diagram](docs/architecture.svg)
+![Architecture Diagram](docs/bi_platform_architecture.svg)
 
-> Interactive clickable version available when running locally — every agent node is clickable and routes to a detailed explanation.
 
 ### Agent Routing (Conditional Edges)
 
