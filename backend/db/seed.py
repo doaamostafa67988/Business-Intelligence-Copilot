@@ -29,7 +29,10 @@ from db.models import (
 )
 
 settings = get_settings()
-engine = create_engine(settings.database_sync_url)
+engine = create_engine(
+    settings.database_sync_url,
+    connect_args={"sslmode": "require"}
+)
 
 random.seed(42)
 
