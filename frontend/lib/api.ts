@@ -1,141 +1,79 @@
-// ============================================================
-// API Types — mirrors backend Pydantic schemas
-// ============================================================
+/**
+ * API Client
+ *
+ * All requests go to /api/* (Next.js routes on the same origin).
+ * Those routes proxy to the real backend server-side — avoiding CORS entirely.
+ *
+ * DO NOT call the backend URL directly from this file.
+ * That would cause CORS errors in production on Vercel.
+ */
 
-export interface ChatRequest {
-  message: string
-  session_id?: string
-  force_intent?: string
-}
+import type { ChatRequest, ChatResponse, HistoryResponse } from '@/types/api'
 
-export interface ChartData {
-  chart_type: string
-  title: string
-  plotly_figure: PlotlyFigure
-}
+// Always use relative URLs — calls go to Next.js proxy routes
+const BASE = ''
 
-export interface PlotlyFigure {
-  data: PlotlyTrace[]
-  layout: Record<string, unknown>
-  frames?: unknown[]
-}
-
-export interface PlotlyTrace {
-  type: string
-  x?: unknown[]
-  y?: unknown[]
-  labels?: unknown[]
-  values?: unknown[]
-  name?: string
-  mode?: string
-  line?: Record<string, unknown>
-  marker?: Record<string, unknown>
-  fill?: string
-  fillcolor?: string
-  hole?: number
-  [key: string]: unknown
-}
-
-export interface Insight {
-  text: string
-  severity: 'info' | 'warning' | 'critical'
-  category: string
-}
-
-export interface Recommendation {
-  action: string
-  rationale: string
-  priority: 'low' | 'medium' | 'high'
-}
-
-export interface ChatResponse {
-  session_id: string
-  message: string
-  charts: ChartData[]
-  kpis: Record<string, number | string>
-  insights: Insight[]
-  recommendations: Recommendation[]
-  sql_query?: string
-  sql_confidence?: number
-  awaiting_approval: boolean
-  has_report: boolean
-  report_filename?: string
-  agent_trace: string[]
-  processing_ms: number
-}
-
-export interface HistoryTurn {
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: string
-}
-
-export interface HistoryResponse {
-  session_id: string
-  turns: HistoryTurn[]
-}
-
-// ============================================================
-// UI State Types
-// ============================================================
-
-export interface Message {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: Date
-  response?: ChatResponse
-}
-
-export interface AppState {
-  sessionId: string | null
-  messages: Message[]
-  isLoading: boolean
-  error: string | null
-}
-
-// ============================================================
-// API Client
-// ============================================================
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
-    ...init,
+    ...options,
   })
+
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`API error ${res.status}: ${text}`)
+    let errorMessage = `Request failed: ${res.status} ${res.statusText}`
+    try {
+      const errorBody = await res.json()
+      errorMessage = errorBody.error || errorBody.detail || errorMessage
+    } catch {
+      // ignore JSON parse error
+    }
+    throw new Error(errorMessage)
   }
-  return res.json() as Promise<T>
+
+  return res.json()
 }
 
 export const api = {
-  chat: (body: ChatRequest) =>
-    request<ChatResponse>('/chat', {
+  /**
+   * Send a chat message.
+   * Routes through: Browser → /api/chat (Next.js) → Backend
+   */
+  chat: (body: ChatRequest): Promise<ChatResponse> =>
+    request<ChatResponse>('/api/chat', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
 
-  approve: (session_id: string, approved: boolean) =>
-    request<ChatResponse>('/chat/approve', {
+  /**
+   * Force generate an executive PDF report.
+   * Routes through: Browser → /api/report (Next.js) → Backend
+   */
+  report: (sessionId: string, question: string): Promise<ChatResponse> =>
+    request<ChatResponse>('/api/report', {
       method: 'POST',
-      body: JSON.stringify({ session_id, approved }),
+      body: JSON.stringify({ session_id: sessionId, question }),
     }),
 
-  generateReport: (session_id: string, question: string) =>
-    request<ChatResponse>('/report', {
+  /**
+   * Fetch conversation history for a session.
+   * Routes through: Browser → /api/history/[id] (Next.js) → Backend
+   */
+  history: (sessionId: string): Promise<HistoryResponse> =>
+    request<HistoryResponse>(`/api/history/${sessionId}`),
+
+  /**
+   * Approve a low-confidence SQL query (Human-in-the-loop).
+   */
+  approve: (sessionId: string, approved: boolean): Promise<ChatResponse> =>
+    request<ChatResponse>('/api/chat/approve', {
       method: 'POST',
-      body: JSON.stringify({ session_id, question }),
+      body: JSON.stringify({ session_id: sessionId, approved }),
     }),
 
-  history: (session_id: string) =>
-    request<HistoryResponse>(`/history/${session_id}`),
-
-  health: () => request<{ status: string }>('/health'),
-
-  reportDownloadUrl: (filename: string) =>
-    `${API_BASE}/report/download/${filename}`,
+  /**
+   * Build a download URL for a generated PDF report.
+   * Goes through the proxy to avoid CORS on the file download.
+   */
+  reportDownloadUrl: (filename: string): string =>
+    `/api/download/${encodeURIComponent(filename)}`,
 }

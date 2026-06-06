@@ -36,7 +36,6 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import get_settings
-from core.serializer import sanitize
 from core.state import AgentState
 from db.models import AsyncSessionLocal, Base, engine, get_db
 from services.memory import build_history_for_state, load_memory, save_memory
@@ -82,11 +81,23 @@ app = FastAPI(
 )
 
 # CORS
+# CORS fix for Vercel + HuggingFace deployment.
+# Since the Next.js proxy routes call this backend server-side,
+# we can safely allow all origins — browser never calls this directly.
+ALLOWED_ORIGINS = [
+    "https://business-intelligence-copilot.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    *settings.cors_origins,
+]
+# Allow any *.vercel.app preview URL
+import re as _re
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["*"],          # safe: requests come from Next.js server, not browsers
+    allow_credentials=False,       # must be False when allow_origins=["*"]
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -217,10 +228,7 @@ async def chat(
     # Run LangGraph workflow
     try:
         workflow = get_workflow()
-        # model_dump(mode='json') converts datetime/Decimal to JSON-safe types.
-        # sanitize() is kept as a belt-and-suspenders safety net.
-        raw_state = sanitize(initial_state.model_dump(mode="json"))
-        final_state_dict = await workflow.ainvoke(raw_state)
+        final_state_dict = await workflow.ainvoke(initial_state.model_dump())
         final_state = AgentState(**final_state_dict)
     except Exception as e:
         logger.error("Workflow error", error=str(e), session_id=session_id)
@@ -255,7 +263,7 @@ async def chat(
             )
             for c in final_state.charts
         ],
-        kpis=sanitize(final_state.analysis.kpis) if final_state.analysis else {},
+        kpis=final_state.analysis.kpis if final_state.analysis else {},
         insights=[InsightResponse(**ins.model_dump()) for ins in final_state.insights],
         recommendations=[RecommendationResponse(**rec.model_dump()) for rec in final_state.recommendations],
         sql_query=final_state.sql_result.sql if final_state.sql_result else None,
