@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { useStore } from '@/lib/store'
 import { MessageBubble } from './MessageBubble'
 import { api } from '@/lib/api'
+import type { Message } from '@/types/api'
 
 export function ChatInterface() {
   const {
@@ -118,7 +119,7 @@ export function ChatInterface() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
         {messages.length === 0 && <EmptyState />}
-        {messages.map((msg) => (
+        {messages.map((msg: Message) => (
           <MessageBubble key={msg.id} message={msg} />
         ))}
         {isLoading && <ThinkingIndicator />}
