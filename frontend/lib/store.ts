@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Message, AppState } from '@/types/api'
-function genId() {
+import type { Message, AppState, ChatResponse } from '@/types/api'
+
+// Simple id generator (no uuid dependency needed)
+function genId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
@@ -16,22 +18,22 @@ interface Actions {
 
 export const useStore = create<AppState & Actions>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       sessionId: null,
       messages: [],
       isLoading: false,
       error: null,
 
-      setSessionId: (id) => set({ sessionId: id }),
+      setSessionId: (id: string) => set({ sessionId: id }),
 
-      addMessage: (msg) => {
+      addMessage: (msg: Omit<Message, 'id' | 'timestamp'>): Message => {
         const full: Message = { ...msg, id: genId(), timestamp: new Date() }
-        set((s) => ({ messages: [...s.messages, full] }))
+        set((s: AppState) => ({ messages: [...s.messages, full] }))
         return full
       },
 
-      updateLastAssistantMessage: (response) => {
-        set((s) => {
+      updateLastAssistantMessage: (response: ChatResponse) => {
+        set((s: AppState) => {
           const msgs = [...s.messages]
           for (let i = msgs.length - 1; i >= 0; i--) {
             if (msgs[i].role === 'assistant') {
@@ -43,13 +45,18 @@ export const useStore = create<AppState & Actions>()(
         })
       },
 
-      setLoading: (loading) => set({ isLoading: loading }),
-      setError:   (error)   => set({ error }),
-      clearSession: ()      => set({ sessionId: null, messages: [], error: null }),
+      setLoading: (loading: boolean) => set({ isLoading: loading }),
+      setError: (error: string | null) => set({ error }),
+
+      clearSession: () =>
+        set({ sessionId: null, messages: [], error: null }),
     }),
     {
       name: 'bi-platform-store',
-      partialize: (s) => ({ sessionId: s.sessionId, messages: s.messages }),
+      partialize: (s: AppState & Actions) => ({
+        sessionId: s.sessionId,
+        messages: s.messages,
+      }),
     }
   )
 )
