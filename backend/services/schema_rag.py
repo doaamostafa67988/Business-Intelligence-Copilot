@@ -38,7 +38,7 @@ SCHEMA_CATALOGUE = [
         "keywords": ["revenue", "sales", "profit", "units", "growth", "trend",
                      "quarterly", "monthly", "yearly", "region", "product", "refund"],
         "join_hints": "JOIN regions ON sales.region_id = regions.id JOIN products ON sales.product_id = products.id",
-        "example_sql": "SELECT DATE_TRUNC('month', sale_date) AS month, SUM(revenue) AS revenue FROM sales GROUP BY 1 ORDER BY 1",
+        "example_sql": "SELECT r.name AS region, SUM(s.revenue) AS revenue FROM sales s JOIN regions r ON s.region_id = r.id WHERE s.sale_date BETWEEN '2025-01-01' AND '2025-12-31' AND r.name IN ('North','South') GROUP BY r.name ORDER BY revenue DESC",
     },
     {
         "id": "regions",
@@ -52,6 +52,7 @@ SCHEMA_CATALOGUE = [
                      "geography", "location", "area", "territory"],
         "join_hints": "",
         "example_sql": "SELECT name FROM regions ORDER BY name",
+        "comparison_example": "SELECT r.name AS region, SUM(s.revenue) AS revenue FROM sales s JOIN regions r ON s.region_id = r.id WHERE s.sale_date BETWEEN '2025-01-01' AND '2025-12-31' AND r.name IN ('North','South') GROUP BY r.name ORDER BY revenue DESC",
     },
     {
         "id": "products",

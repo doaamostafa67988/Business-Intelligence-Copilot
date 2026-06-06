@@ -37,6 +37,16 @@ Rules you MUST follow:
     - "revenue", "profit", "units sold", "sales trends" → query the SALES table
     - "orders", "transactions", "order status" → query the ORDERS table
     - NEVER query sales table for customer lifetime_value — that column only exists in customers table
+12. CRITICAL — operator precedence with AND/OR:
+    - ALWAYS wrap OR conditions in parentheses when mixed with AND
+    - WRONG: WHERE year = 2025 AND name = 'North' OR name = 'South'
+    - RIGHT: WHERE year = 2025 AND (name = 'North' OR name = 'South')
+    - RIGHT: WHERE year = 2025 AND name ILIKE ANY(ARRAY['North','South'])
+    - For filtering multiple values of the same column use IN or ANY:
+      r.name IN ('North', 'South')
+13. Use DATE_TRUNC or EXTRACT correctly:
+    - For year filter: EXTRACT(YEAR FROM s.sale_date) = 2025 OR s.sale_date BETWEEN '2025-01-01' AND '2025-12-31'
+    - BETWEEN is preferred — it uses the index on sale_date
 
 Schema context:
 {schema_context}
