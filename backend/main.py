@@ -453,6 +453,45 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     }
 
 
+@app.get("/debug/db")
+async def debug_db(db: AsyncSession = Depends(get_db)):
+    """
+    Debug endpoint — shows row counts for all tables.
+    Use this to verify the database is seeded correctly.
+    GET /debug/db
+    """
+    counts = {}
+    tables = ["regions", "products", "customers", "orders", "order_items", "sales"]
+    for table in tables:
+        try:
+            result = await db.execute(text(f"SELECT COUNT(*) FROM {table}"))
+            counts[table] = result.scalar()
+        except Exception as e:
+            counts[table] = f"error: {str(e)}"
+    return {"table_counts": counts, "seeded": counts.get("regions", 0) > 0}
+
+
+@app.post("/debug/seed")
+async def manual_seed():
+    """
+    Manually trigger database seeding.
+    Use if /debug/db shows empty tables.
+    POST /debug/seed
+    """
+    try:
+        import subprocess, sys
+        proc = subprocess.run(
+            [sys.executable, "-m", "db.seed"],
+            capture_output=True, text=True, timeout=180
+        )
+        if proc.returncode == 0:
+            return {"status": "success", "output": proc.stdout[-500:]}
+        else:
+            return {"status": "failed", "stderr": proc.stderr[-500:]}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
 @app.get("/")
 async def root():
     return {
