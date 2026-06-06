@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Code2, Download,
   TrendingUp, Lightbulb, Target, Database, Clock
 } from 'lucide-react'
-import type { Message, ChatResponse, Insight, Recommendation } from '@/types/api'
+import type { Message, ChatResponse, Insight, Recommendation, ChartData } from '@/types/api'
 import { ChartPanel } from './ChartPanel'
 import { api } from '@/lib/api'
 
@@ -71,7 +71,7 @@ function RichContent({ response }: { response: ChatResponse }) {
       {/* Charts */}
       {response.charts.length > 0 && (
         <div className="space-y-3">
-          {response.charts.map((chart, i) => (
+          {response.charts.map((chart: ChartData, i: number) => (
             <ChartPanel key={i} chart={chart} />
           ))}
         </div>
@@ -123,8 +123,8 @@ function KPIGrid({ kpis }: { kpis: Record<string, number | string> }) {
 }
 
 function InsightsPanel({ insights }: { insights: Insight[] }) {
-  const iconMap = { info: '💡', warning: '⚠️', critical: '🔴' }
-  const borderMap = {
+  const iconMap: Record<Insight['severity'], string> = { info: '💡', warning: '⚠️', critical: '🔴' }
+  const borderMap: Record<Insight['severity'], string> = {
     info: 'border-indigo-500/30 bg-indigo-500/5',
     warning: 'border-amber-500/30 bg-amber-500/5',
     critical: 'border-red-500/30 bg-red-500/5',
@@ -138,7 +138,7 @@ function InsightsPanel({ insights }: { insights: Insight[] }) {
         <span className="ml-auto text-xs text-slate-500">{insights.length}</span>
       </div>
       <div className="p-3 space-y-2">
-        {insights.map((ins, i) => (
+        {insights.map((ins: Insight, i: number) => (
           <div key={i} className={`rounded-lg border px-3 py-2 text-sm ${borderMap[ins.severity]}`}>
             <span className="mr-2">{iconMap[ins.severity]}</span>
             <span className="text-slate-300">{ins.text}</span>
@@ -150,7 +150,7 @@ function InsightsPanel({ insights }: { insights: Insight[] }) {
 }
 
 function RecommendationsPanel({ recommendations }: { recommendations: Recommendation[] }) {
-  const priorityStyle = {
+  const priorityStyle: Record<Recommendation['priority'], string> = {
     high:   'text-red-400 border-red-500/30 bg-red-500/10',
     medium: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
     low:    'text-green-400 border-green-500/30 bg-green-500/10',
@@ -163,7 +163,7 @@ function RecommendationsPanel({ recommendations }: { recommendations: Recommenda
         <span className="text-sm font-medium text-slate-300">Recommendations</span>
       </div>
       <div className="p-3 space-y-2">
-        {recommendations.map((rec, i) => (
+        {recommendations.map((rec: Recommendation, i: number) => (
           <div key={i} className="rounded-lg border border-slate-800/60 bg-slate-900/40 p-3">
             <div className="flex items-start justify-between gap-2 mb-1">
               <p className="text-sm font-medium text-slate-200">{rec.action}</p>
@@ -300,7 +300,7 @@ function MetaFooter({ response }: { response: ChatResponse }) {
       {/* Agent trace */}
       {showTrace && response.agent_trace.length > 0 && (
         <div className="w-full flex flex-wrap gap-1.5 pt-1">
-          {response.agent_trace.map((agent, i) => (
+          {response.agent_trace.map((agent: string, i: number) => (
             <span key={i} className="agent-badge">{agent}</span>
           ))}
         </div>
