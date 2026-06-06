@@ -51,11 +51,34 @@ logger = structlog.get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Create DB tables and warm up the schema retriever on startup."""
+    """Create DB tables, auto-seed if empty, and warm up on startup."""
+    # 1. Create all tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Warm up the sentence transformer (downloads model on first run)
+    # 2. Auto-seed if database is empty (critical for HuggingFace Spaces cold starts)
+    try:
+        from sqlalchemy import text as _text
+        async with AsyncSessionLocal() as _sess:
+            result = await _sess.execute(_text("SELECT COUNT(*) FROM regions"))
+            region_count = result.scalar()
+        if region_count == 0:
+            logger.info("Database is empty — running seed...")
+            import subprocess, sys
+            proc = subprocess.run(
+                [sys.executable, "-m", "db.seed"],
+                capture_output=True, text=True, timeout=120
+            )
+            if proc.returncode == 0:
+                logger.info("Database seeded successfully")
+            else:
+                logger.error("Seed failed", stderr=proc.stderr[-500:])
+        else:
+            logger.info("Database already seeded", regions=region_count)
+    except Exception as e:
+        logger.warning("Auto-seed check failed", error=str(e))
+
+    # 3. Warm up the sentence transformer
     try:
         from services.schema_rag import get_schema_retriever
         get_schema_retriever()
@@ -63,7 +86,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Schema RAG warmup failed", error=str(e))
 
-    # Ensure reports directory exists
+    # 4. Ensure reports directory exists
     Path(settings.reports_dir).mkdir(parents=True, exist_ok=True)
 
     logger.info("BI Platform started", env=settings.app_env, version=settings.app_version)
