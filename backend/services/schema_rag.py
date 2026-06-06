@@ -72,13 +72,17 @@ SCHEMA_CATALOGUE = [
         "table": "customers",
         "description": (
             "Customer master data with segments: Enterprise, SMB, Consumer. "
-            "Columns: id, name, email, segment, region_id (FK), lifetime_value, "
-            "churn_risk (low/medium/high), acquisition_channel."
+            "Use this table for customer ranking, lifetime value, churn, top customers. "
+            "Columns: id, name, email, segment, region_id (FK), lifetime_value (DECIMAL), "
+            "churn_risk (low/medium/high), acquisition_channel. "
+            "For top N customers by lifetime value: ORDER BY lifetime_value DESC LIMIT N. "
+            "Do NOT use the sales table for customer-level lifetime_value queries."
         ),
         "keywords": ["customer", "client", "segment", "enterprise", "smb",
-                     "lifetime value", "ltv", "account", "churn"],
+                     "lifetime value", "ltv", "account", "churn", "top customers",
+                     "best customers", "highest value", "top 5", "top 10"],
         "join_hints": "JOIN regions ON customers.region_id = regions.id",
-        "example_sql": "SELECT segment, COUNT(*) AS count, SUM(lifetime_value) AS total_ltv FROM customers GROUP BY segment",
+        "example_sql": "SELECT name, segment, lifetime_value FROM customers ORDER BY lifetime_value DESC LIMIT 5",
     },
     {
         "id": "orders",
@@ -104,6 +108,21 @@ SCHEMA_CATALOGUE = [
         "keywords": ["line item", "quantity", "basket", "cart", "sku level", "discount"],
         "join_hints": "JOIN orders ON order_items.order_id = orders.id JOIN products ON order_items.product_id = products.id",
         "example_sql": "SELECT p.name, SUM(oi.quantity) AS total_qty FROM order_items oi JOIN products p ON oi.product_id = p.id GROUP BY p.name",
+    },
+    {
+        "id": "top_customers",
+        "table": "customers",
+        "description": (
+            "Top customers by lifetime value. "
+            "Query: SELECT c.name, c.segment, c.lifetime_value, r.name AS region "
+            "FROM customers c JOIN regions r ON c.region_id = r.id "
+            "ORDER BY c.lifetime_value DESC LIMIT 5. "
+            "Use customers table directly — NOT sales table — for lifetime_value ranking."
+        ),
+        "keywords": ["top customers", "best customers", "top 5 customers", "top 10 customers",
+                     "highest lifetime value", "most valuable customers", "ltv ranking"],
+        "join_hints": "JOIN regions r ON customers.region_id = r.id",
+        "example_sql": "SELECT c.name, c.segment, c.lifetime_value, r.name AS region FROM customers c JOIN regions r ON c.region_id = r.id ORDER BY c.lifetime_value DESC LIMIT 5",
     },
     {
         "id": "kpi_revenue",

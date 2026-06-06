@@ -34,7 +34,9 @@ async def response_composer_node(state: AgentState) -> AgentState:
                 "the safety threshold. Please review and approve it before execution."
             )
         elif state.sql_result.data is not None:
-            row_count = state.sql_result.row_count
+            # Use len(data) as the source of truth — row_count may be 0
+            # if Pydantic lost it during LangGraph state serialisation
+            row_count = len(state.sql_result.data) if state.sql_result.data else state.sql_result.row_count
             if row_count == 0:
                 parts.append("No data was found matching your query. Try adjusting the date range or filters.")
             else:

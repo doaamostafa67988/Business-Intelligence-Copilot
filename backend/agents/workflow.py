@@ -183,18 +183,14 @@ def build_workflow() -> StateGraph:
 def _wrap(node_fn):
     """
     Wrap an async AgentState node function for LangGraph's dict-based state.
-
-    CRITICAL: Uses model_dump(mode='json') so Pydantic converts ALL
-    non-serializable types automatically:
-      datetime → ISO string  (fixes "datetime is not JSON serializable")
-      Decimal  → float       (fixes "Decimal is not JSON serializable")
-      date     → ISO string
-    This runs after every node so it covers the entire pipeline.
+    Serialises dict → AgentState → run → dict.
     """
     async def wrapped(state: dict) -> dict:
         agent_state = AgentState(**state)
         result = await node_fn(agent_state)
-        return result.model_dump(mode="json")
+        # mode='json' converts Decimal/datetime/Enum from PostgreSQL to
+        # JSON-safe types so nested fields like row_count survive round-trips
+        return result.model_dump(mode='json')
     return wrapped
 
 
