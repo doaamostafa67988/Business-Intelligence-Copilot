@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Message, AppState, ChatResponse } from '@/lib/api'
-
+import type { Message, AppState } from '@/types/api'
 function genId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
