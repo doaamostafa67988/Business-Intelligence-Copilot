@@ -1,21 +1,17 @@
-/**
- * Next.js API Route — /api/download/[filename]
- * Proxies PDF file downloads from the backend through Vercel.
- * Needed because direct cross-origin file downloads also trigger CORS.
- */
-
 import { NextRequest, NextResponse } from 'next/server'
 
-const BACKEND_URL = process.env.BACKEND_URL || 
-                    process.env.NEXT_PUBLIC_API_URL || 
-                    'https://huggingface.co/spaces/Doaamostafa/bI-platform'
+const BACKEND_URL =
+  process.env.BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  'https://huggingface.co/spaces/Doaamostafa/bI-platform'
 
+// Next.js 15: params is now a Promise — must be awaited
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { filename: string } }
+  context: { params: Promise<{ filename: string }> }
 ) {
   try {
-    const { filename } = params
+    const { filename } = await context.params
     const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '')
 
     const backendResponse = await fetch(
@@ -30,8 +26,7 @@ export async function GET(
       )
     }
 
-    const blob = await backendResponse.blob()
-    const buffer = await blob.arrayBuffer()
+    const buffer = await (await backendResponse.blob()).arrayBuffer()
 
     return new NextResponse(buffer, {
       headers: {
@@ -39,7 +34,6 @@ export async function GET(
         'Content-Disposition': `attachment; filename="${safeFilename}"`,
       },
     })
-
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
